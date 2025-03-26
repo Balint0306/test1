@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Block Blast Puzzle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #6c5ce7;
+        --primary-dark: #5541d9;
+        --secondary-color: #00caca;
+        --accent-color: #ffa502;
+        --dark-bg: #0f1025;
+        --light-bg: #1f213a;
+        --lighter-bg: #2d3153;
+        --text-color: #ffffff;
+        --text-secondary: #bdc3c7;
+        --success-color: #2ecc71;
+        --danger-color: #e74c3c;
+        --shadow-color: rgba(0, 0, 0, 0.4);
+        --grid-lines: rgba(255, 255, 255, 0.08);
+        --cell-bg: rgba(255, 255, 255, 0.06);
+        --cell-border: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        background: var(--dark-bg);
+        color: var(--text-color);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(125deg, #0f1025 0%, #2a1c56 100%);
+        background-size: 150% 150%;
+        animation: gradientBG 15s ease infinite alternate;
+        z-index: -1;
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 0%;
+        }
+        50% {
+          background-position: 100% 100%;
+        }
+        100% {
+          background-position: 0% 0%;
+        }
+      }
+
+      .noise-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxwYXRoIGQ9Ik0wIDBoMzAwdjMwMEgweiIgZmlsdGVyPSJ1cmwoI2EpIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=");
+        opacity: 0.4;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .container {
+        max-width: 520px;
+        width: 100%;
+        margin: 0 auto;
+        background: var(--light-bg);
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+        position: relative;
+        z-index: 2;
+        overflow: hidden;
+        transform: translateZ(0);
+      }
+
+      .container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .header {
+        margin-bottom: 24px;
+        text-align: center;
+        position: relative;
+      }
+
+      .header h1 {
+        font-size: 2.4rem;
+        font-weight: 800;
+        background: linear-gradient(to right, #fff, var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 5px;
+        letter-spacing: -0.5px;
+        position: relative;
+        display: inline-block;
+        text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .header h1::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 25%;
+        width: 50%;
+        height: 3px;
+        background: var(--secondary-color);
+        border-radius: 2px;
+      }
+
+      .header p {
+        font-size: 1rem;
+        opacity: 0.8;
+        max-width: 80%;
+        margin: 0 auto;
+        margin-top: 10px;
+      }
+
+      .stats-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .stats-box {
+        flex: 1;
+        background: var(--lighter-bg);
+        border-radius: 16px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+          inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .stats-box:hover {
+        transform: translateY(-2px);
+      }
+
+      .stats-box h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        opacity: 0.9;
+        margin-bottom: 8px;
+      }
+
+      .score-value {
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .game-container {
+        position: relative;
+        margin-bottom: 20px;
+      }
+
+      .level-indicator {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: var(--accent-color);
+        color: var(--dark-bg);
+        font-weight: 700;
+        font-size: 1rem;
+        padding: 8px 12px;
+        border-radius: 12px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        z-index: 10;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .game-board {
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        grid-template-rows: repeat(9, 1fr);
+        gap: 4px;
+        aspect-ratio: 1/1;
+        background-color: var(--lighter-bg);
+        border-radius: 16px;
+        padding: 10px;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+        background-image: linear-gradient(
+            to right,
+            var(--grid-lines) 1px,
+            transparent 1px
+          ),
+          linear-gradient(to bottom, var(--grid-lines) 1px, transparent 1px);
+        background-size: 11.11% 11.11%;
+      }
+
+      .game-board::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          circle at center,
+          rgba(108, 92, 231, 0.1) 0%,
+          rgba(15, 16, 37, 0.2) 70%
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .cell {
+        background-color: var(--cell-bg);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--cell-border);
+      }
+
+      .cell::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 50%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.1),
+          rgba(255, 255, 255, 0)
+        );
+        pointer-events: none;
+      }
+
+      /* Játéktáblán megjelenő díszítő blokkok */
+      .decoration-block {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        opacity: 0.07;
+        transform: rotate(15deg);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .cell.filled {
+        transform-origin: center;
+        animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        z-index: 2;
+      }
+
+      @keyframes pop {
+        0% {
+          transform: scale(0.5);
+          opacity: 0.5;
+        }
+        70% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .cell.highlight {
+        background-color: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      }
+
+      .cell.valid-placement {
+        background-color: rgba(46, 204, 113, 0.25);
+        box-shadow: inset 0 0 10px rgba(46, 204, 113, 0.6);
+        transform: scale(0.95);
+      }
+
+      .cell.invalid-placement {
+        background-color: rgba(231, 76, 60, 0.25);
+        box-shadow: inset 0 0 10px rgba(231, 76, 60, 0.6);
+        transform: scale(0.95);
+      }
+
+      .cell.row-clear {
+        animation: clear 0.8s forwards cubic-bezier(0.165, 0.84, 0.44, 1);
+      }
+
+      @keyframes clear {
+        0% {
+          transform: scale(1);
+          filter: brightness(2);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(0);
+          opacity: 0;
+        }
+      }
+
+      .pieces-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 24px;
+        height: 145px;
+        gap: 12px;
+      }
+
+      .piece-holder {
+        width: 32%;
+        height: 100%;
+        background-color: var(--lighter-bg);
+        border-radius: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        border: 2px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .piece-holder::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        pointer-events: none;
+      }
+
+      .piece-holder:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .piece-holder:active {
+        transform: translateY(-1px);
+      }
+
+      .piece {
+        display: grid;
+        gap: 3px;
+        cursor: grab;
+        transform-origin: center;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+          opacity 0.2s;
+        will-change: transform;
+      }
+
+      .piece.dragging {
+        cursor: grabbing;
+        opacity: 0.9;
+        z-index: 100;
+        position: absolute;
+        filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.7));
+        transform: scale(1.05);
+      }
+
+      .piece.used {
+        opacity: 0.25;
+        transform: scale(0.9);
+      }
+
+      .piece.selected {
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+      }
+
+      .piece-block {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.2s ease;
+      }
+
+      @media (min-width: 520px) {
+        .piece-block {
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      .piece-block::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 50%;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.4),
+          rgba(255, 255, 255, 0)
+        );
+        pointer-events: none;
+      }
+
+      .rotate-hint {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+        padding: 5px 8px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .piece-holder:hover .rotate-hint {
+        opacity: 1;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 24px;
+      }
+
+      .menu-btn {
+        padding: 16px 28px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        font-family: "Outfit", sans-serif;
+        background: linear-gradient(
+          45deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+        border: none;
+        border-radius: 60px;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        width: 70%;
+        max-width: 300px;
+      }
+
+      .menu-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: 0.5s;
+      }
+
+      .menu-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3);
+      }
+
+      .menu-btn:hover::before {
+        left: 100%;
+      }
+
+      .menu-btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background: linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--dark-bg)
+        );
+        color: white;
+        padding: 35px;
+        border-radius: 24px;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+        animation: modalFadeIn 0.5s;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .modal-content::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.05) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        pointer-events: none;
+      }
+
+      @keyframes modalFadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.8) translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      .modal h2 {
+        margin-bottom: 24px;
+        font-size: 2.2rem;
+        background: linear-gradient(to right, #fff, var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        position: relative;
+        display: inline-block;
+      }
+
+      .modal p {
+        margin-bottom: 16px;
+        font-size: 1.2rem;
+        line-height: 1.5;
+        color: var(--text-secondary);
+      }
+
+      .modal .final-score {
+        font-size: 3.5rem;
+        font-weight: bold;
+        color: var(--secondary-color);
+        margin: 25px 0;
+        text-shadow: 0 2px 10px rgba(0, 202, 202, 0.5);
+      }
+
+      .modal-button {
+        background: linear-gradient(45deg, var(--accent-color), #f39c12);
+        color: white;
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 16px 32px;
+        border: none;
+        border-radius: 50px;
+        margin-top: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        width: 80%;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .modal-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-button:active {
+        transform: translateY(1px);
+      }
+
+      .modal-buttons {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        margin-top: 25px;
+      }
+
+      .level-progress {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px 0;
+      }
+
+      .progress-bar {
+        width: 85%;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--secondary-color),
+          var(--primary-color)
+        );
+        border-radius: 10px;
+        transition: width 0.5s ease-out;
+      }
+
+      .level-text {
+        font-size: 1rem;
+        margin-left: 10px;
+        font-weight: 600;
+      }
+
+      .popup-points {
+        position: absolute;
+        color: var(--accent-color);
+        font-weight: 700;
+        font-size: 1.8rem;
+        pointer-events: none;
+        animation: pointsPopup 1.5s ease-out forwards;
+        z-index: 50;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+
+      @keyframes pointsPopup {
+        0% {
+          transform: translateY(0) scale(0.5);
+          opacity: 0;
+        }
+        10% {
+          transform: translateY(0) scale(1.2);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-50px) scale(1);
+          opacity: 0;
+        }
+      }
+
+      .combo-indicator {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transform: translateX(-50%) scale(0);
+        background: linear-gradient(45deg, var(--accent-color), #f39c12);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 20;
+      }
+
+      .combo-indicator.show {
+        animation: comboShow 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+
+      @keyframes comboShow {
+        0% {
+          transform: translateX(-50%) scale(0);
+          opacity: 0;
+        }
+        20% {
+          transform: translateX(-50%) scale(1.2);
+          opacity: 1;
+        }
+        80% {
+          transform: translateX(-50%) scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: translateX(-50%) scale(1);
+          opacity: 0;
+        }
+      }
+
+      .hint-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 16px;
+        z-index: 5;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .hint-message {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--dark-bg);
+        padding: 16px 28px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        animation: pulse 1.5s infinite;
+      }
+
+      .hint-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: #f00;
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      .menu-modal .modal-content {
+        padding-bottom: 25px;
+      }
+
+      .menu-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        align-items: center;
+      }
+
+      .menu-buttons button {
+        width: 85%;
+        padding: 16px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-radius: 50px;
+        border: none;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .resume-btn {
+        background: linear-gradient(45deg, var(--success-color), #27ae60);
+        color: white;
+      }
+
+      .new-game-btn {
+        background: linear-gradient(
+          45deg,
+          var(--primary-color),
+          var(--primary-dark)
+        );
+        color: white;
+      }
+
+      .help-btn {
+        background: linear-gradient(45deg, var(--accent-color), #f39c12);
+        color: white;
+      }
+
+      .menu-buttons button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .menu-buttons button:active {
+        transform: translateY(1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Reszponzív megjelenés */
+      @media (max-width: 480px) {
+        .container {
+          padding: 20px;
+          max-width: 100%;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .header p {
+          font-size: 0.9rem;
+        }
+
+        .stats-box h3 {
+          font-size: 0.9rem;
+        }
+
+        .score-value {
+          font-size: 1.5rem;
+        }
+
+        .piece-block {
+          width: 24px;
+          height: 24px;
+        }
+
+        .pieces-container {
+          height: 125px;
+        }
+
+        .modal-content {
+          padding: 25px;
+        }
+
+        .modal h2 {
+          font-size: 1.8rem;
+        }
+
+        .modal .final-score {
+          font-size: 3rem;
+        }
+
+        .menu-btn {
+          font-size: 1rem;
+          padding: 14px 24px;
+        }
+
+        .menu-buttons button {
+          font-size: 1rem;
+          padding: 14px;
+        }
+      }
+
+      /* Kisebb telefon kijelzőkre további optimalizáció */
+      @media (max-width: 360px) {
+        .piece-block {
+          width: 22px;
+          height: 22px;
+        }
+
+        .pieces-container {
+          height: 110px;
+        }
+
+        .header h1 {
+          font-size: 1.8rem;
+        }
+
+        .stats-box {
+          padding: 12px 8px;
+        }
+
+        .stats-box h3 {
+          font-size: 0.8rem;
+        }
+
+        .menu-btn {
+          font-size: 0.9rem;
+          padding: 12px 20px;
+        }
+
+        .modal-content {
+          padding: 20px;
+        }
+
+        .hint-message {
+          font-size: 0.9rem;
+          padding: 12px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="noise-overlay"></div>
+    <div class="container">
+      <div class="header">
+        <h1>Block Blast Puzzle</h1>
+        <p>Helyezd el a blokkokat és törölj sorokat!</p>
+      </div>
+      <div class="stats-container">
+        <div class="stats-box">
+          <h3>Pontszám</h3>
+          <div id="score" class="score-value">0</div>
+        </div>
+        <div class="stats-box">
+          <h3>Szint</h3>
+          <div id="level" class="score-value">1</div>
+        </div>
+        <div class="stats-box">
+          <h3>Rekord</h3>
+          <div id="highScore" class="score-value">0</div>
+        </div>
+      </div>
+      <div class="level-progress">
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="level-text" id="levelGoal">0/100</div>
+      </div>
+      <div class="game-container">
+        <div class="level-indicator" id="levelUp" style="display: none">
+          Szintlépés!
+        </div>
+        <div class="combo-indicator" id="comboIndicator">Combo x2!</div>
+        <div class="hint-overlay" id="hintOverlay">
+          <div class="hint-message" id="hintMessage">
+            Tipp: Dupla kattintás a forgatáshoz
+          </div>
+        </div>
+        <div class="game-board" id="gameBoard"></div>
+      </div>
+      <div class="pieces-container" id="piecesContainer">
+        <!-- Ide jönnek a blokkok -->
+      </div>
+      <div class="controls">
+        <button id="menuBtn" class="menu-btn">Menü</button>
+      </div>
+    </div>
+
+    <!-- Játék vége modal -->
+    <div id="gameOverModal" class="modal">
+      <div class="modal-content">
+        <h2>Játék Vége!</h2>
+        <p>Nincs több lehetséges lépés.</p>
+        <div class="final-score"><span id="finalScore">0</span></div>
+        <p>Elért szint: <span id="finalLevel">1</span></p>
+        <button id="newGameBtnEnd" class="modal-button">Új Játék</button>
+      </div>
+    </div>
+
+    <!-- Segítség modal -->
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+        <h2>Játékszabályok</h2>
+        <p>Húzd a 3 blokkot a táblára!</p>
+        <p>
+          Amikor egy sor vagy oszlop teljesen kitöltődik, az eltűnik és pontokat
+          kapsz.
+        </p>
+        <p><b>Tippek:</b></p>
+        <p>• Dupla kattintás (dupla érintés) a blokkok forgatásához</p>
+        <p>• Kombókat szerezhetsz ha gyorsan törölsz sorokat</p>
+        <p>• A szintlépésekkel egyre nehezebb lesz a játék</p>
+        <button id="closeHelpBtn" class="modal-button">Bezárás</button>
+      </div>
+    </div>
+
+    <!-- Menü modal -->
+    <div id="menuModal" class="modal menu-modal">
+      <div class="modal-content">
+        <h2>Játék Menü</h2>
+        <div class="menu-buttons">
+          <button id="resumeBtn" class="resume-btn">Folytatás</button>
+          <button id="newGameBtn" class="new-game-btn">Új Játék</button>
+          <button id="helpBtn" class="help-btn">Segítség</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Új játék megerősítés modal -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <h2>Új játék indítása</h2>
+        <p>
+          Biztosan új játékot szeretnél kezdeni? Az aktuális játékállás elvész!
+        </p>
+        <div class="modal-buttons">
+          <button id="confirmNewGameBtn" class="modal-button">
+            Igen, új játék
+          </button>
+          <button
+            id="cancelNewGameBtn"
+            class="modal-button"
+            style="background: #7f8c8d"
+          >
+            Mégsem
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Elemek kiválasztása
+        const gameBoard = document.getElementById("gameBoard");
+        const piecesContainer = document.getElementById("piecesContainer");
+        const scoreElement = document.getElementById("score");
+        const levelElement = document.getElementById("level");
+        const progressFill = document.getElementById("progressFill");
+        const levelGoal = document.getElementById("levelGoal");
+        const levelUp = document.getElementById("levelUp");
+        const highScoreElement = document.getElementById("highScore");
+        const menuBtn = document.getElementById("menuBtn");
+        const resumeBtn = document.getElementById("resumeBtn");
+        const newGameBtn = document.getElementById("newGameBtn");
+        const newGameBtnEnd = document.getElementById("newGameBtnEnd");
+        const confirmNewGameBtn = document.getElementById("confirmNewGameBtn");
+        const cancelNewGameBtn = document.getElementById("cancelNewGameBtn");
+        const helpBtn = document.getElementById("helpBtn");
+        const closeHelpBtn = document.getElementById("closeHelpBtn");
+        const menuModal = document.getElementById("menuModal");
+        const gameOverModal = document.getElementById("gameOverModal");
+        const helpModal = document.getElementById("helpModal");
+        const confirmModal = document.getElementById("confirmModal");
+        const finalScoreElement = document.getElementById("finalScore");
+        const finalLevelElement = document.getElementById("finalLevel");
+        const comboIndicator = document.getElementById("comboIndicator");
+        const hintOverlay = document.getElementById("hintOverlay");
+        const hintMessage = document.getElementById("hintMessage");
+
+        // Játék beállítások
+        const BOARD_SIZE = 9;
+        const COLORS = [
+          "#FF5757", // piros
+          "#F2DE68", // sárga
+          "#5CDAA5", // zöld
+          "#5CAADE", // kék
+          "#B479E0", // lila
+          "#FF9D5C", // narancs
+          "#FF79C6", // rózsaszín
+          "#8BE9FD", // világoskék
+        ];
+
+        // Blokk típusok - teljesen új változatos formákkal
+        const BLOCK_TYPES = [
+          // Egyes blokk
+          [[0, 0]],
+
+          // Kettes blokkok
+          [
+            [0, 0],
+            [0, 1],
+          ], // Vízszintes
+          [
+            [0, 0],
+            [1, 0],
+          ], // Függőleges
+
+          // Hármas blokkok
+          [
+            [0, 0],
+            [0, 1],
+            [0, 2],
+          ], // Vízszintes
+          [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+          ], // Függőleges
+          [
+            [0, 0],
+            [0, 1],
+            [1, 0],
+          ], // L-alak
+          [
+            [0, 0],
+            [0, 1],
+            [1, 1],
+          ], // Fordított L
+          [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+          ], // Z-alak
+          [
+            [0, 1],
+            [1, 0],
+            [1, 1],
+          ], // Fordított Z
+
+          // Négyes blokkok
+          [
+            [0, 0],
+            [0, 1],
+            [1, 0],
+            [1, 1],
+          ], // Négyzet
+          [
+            [0, 0],
+            [0, 1],
+            [0, 2],
+            [0, 3],
+          ], // Vízszintes
+          [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+            [3, 0],
+          ], // Függőleges
+          [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+            [2, 1],
+          ], // L-alak
+          [
+            [0, 0],
+            [0, 1],
+            [1, 0],
+            [2, 0],
+          ], // Fordított L
+          [
+            [0, 1],
+            [1, 0],
+            [1, 1],
+            [1, 2],
+          ], // T-alak
+          [
+            [0, 0],
+            [0, 1],
+            [0, 2],
+            [1, 1],
+          ], // Fordított T
+        ];
+
+        // Játék változók
+        let board = [];
+        let score = 0;
+        let level = 1;
+        let levelScore = 0;
+        let levelGoalScore = 100;
+        let highScore =
+          parseInt(localStorage.getItem("blockBlastHighScore")) || 0;
+        let currentPieces = [];
+        let isGameOver = false;
+        let draggedPiece = null;
+        let dragOffset = { x: 0, y: 0 };
+        let lastClearTime = 0;
+        let comboCount = 0;
+        let showedHint = false;
+        let hintTimeout;
+        let gameStarted = false;
+        let gameActive = true;
+
+        // Azonnal betöltjük a játékállást, ha van
+        loadGame();
+
+        // Tábla inicializálása
+        function initBoard() {
+          gameBoard.innerHTML = "";
+          board = [];
+
+          // Táblázat létrehozása
+          for (let row = 0; row < BOARD_SIZE; row++) {
+            board[row] = [];
+            for (let col = 0; col < BOARD_SIZE; col++) {
+              const cell = document.createElement("div");
+              cell.className = "cell";
+              cell.dataset.row = row;
+              cell.dataset.col = col;
+
+              gameBoard.appendChild(cell);
+              board[row][col] = {
+                element: cell,
+                filled: false,
+                color: null,
+              };
+            }
+          }
+
+          // Díszítő blokkok hozzáadása a táblához
+          addDecorationBlocks();
+
+          // Combo kijelző hozzáadása
+          gameBoard.appendChild(comboIndicator);
+        }
+
+        // Díszítő blokkok hozzáadása
+        function addDecorationBlocks() {
+          const decorationColors = COLORS.slice();
+          const numDecorations = 10;
+
+          for (let i = 0; i < numDecorations; i++) {
+            const decoration = document.createElement("div");
+            decoration.className = "decoration-block";
+
+            const colorIndex = Math.floor(
+              Math.random() * decorationColors.length
+            );
+            decoration.style.backgroundColor = decorationColors[colorIndex];
+
+            const size = 30 + Math.random() * 30;
+            decoration.style.width = `${size}px`;
+            decoration.style.height = `${size}px`;
+
+            decoration.style.left = `${Math.random() * 80}%`;
+            decoration.style.top = `${Math.random() * 80}%`;
+            decoration.style.transform = `rotate(${Math.random() * 360}deg)`;
+            decoration.style.opacity = `${0.05 + Math.random() * 0.05}`;
+
+            gameBoard.appendChild(decoration);
+          }
+        }
+
+        // Új blokkok generálása
+        function generateNewPieces() {
+          piecesContainer.innerHTML = "";
+          currentPieces = [];
+
+          // Nehézség növelése a szint alapján
+          const maxBlockSize = Math.min(4, Math.ceil(level / 2 + 1));
+
+          for (let i = 0; i < 3; i++) {
+            const pieceHolder = document.createElement("div");
+            pieceHolder.className = "piece-holder";
+
+            // Rotáció hint hozzáadása
+            const rotateHint = document.createElement("div");
+            rotateHint.className = "rotate-hint";
+            rotateHint.innerHTML = "⟳";
+            pieceHolder.appendChild(rotateHint);
+
+            // Több nagyobb blokk a magasabb szinteken
+            let typeIndex;
+            if (level <= 2) {
+              // Kezdő szinteken egyszerűbb blokkok
+              typeIndex = Math.floor(Math.random() * 9);
+            } else {
+              // Válasszunk egy blokkot, ami megfelelő a szinthez
+              const sizeLimit = BLOCK_TYPES.filter((blocks) => {
+                const size = blocks.length;
+                return size <= maxBlockSize;
+              });
+
+              typeIndex = BLOCK_TYPES.indexOf(
+                sizeLimit[Math.floor(Math.random() * sizeLimit.length)]
+              );
+            }
+
+            const colorIndex = Math.floor(Math.random() * COLORS.length);
+            const color = COLORS[colorIndex];
+            const blocks = [...BLOCK_TYPES[typeIndex]]; // Klón létrehozása az eredeti megőrzése érdekében
+
+            // Blokk elem létrehozása
+            const pieceElement = createPieceElement(blocks, color);
+            pieceElement.dataset.index = i;
+
+            pieceHolder.appendChild(pieceElement);
+            piecesContainer.appendChild(pieceHolder);
+
+            // Drag & Drop funkció hozzáadása
+            pieceElement.addEventListener("mousedown", startDrag);
+            pieceElement.addEventListener("touchstart", startDrag, {
+              passive: false,
+            });
+
+            // Forgatás hozzáadása dupla kattintással/érintéssel
+            pieceElement.addEventListener("dblclick", rotatePiece);
+            let lastTap = 0;
+            pieceElement.addEventListener("touchend", function (e) {
+              const currentTime = new Date().getTime();
+              const tapLength = currentTime - lastTap;
+              if (tapLength < 300 && tapLength > 0) {
+                rotatePiece.call(this, e);
+                e.preventDefault();
+              }
+              lastTap = currentTime;
+            });
+
+            // Darab adatainak tárolása
+            currentPieces.push({
+              element: pieceElement,
+              blocks: blocks,
+              color: color,
+              used: false,
+            });
+          }
+
+          // Játék megkezdődött
+          gameStarted = true;
+
+          // Játék állapot mentése
+          saveGame();
+
+          // Tipp mutatása, ha még nem látta a felhasználó
+          if (!showedHint && level === 1) {
+            showHint("Tipp: Dupla kattintás a forgatáshoz");
+            showedHint = true;
+
+            // Mentés, hogy a tippet már látta
+            localStorage.setItem("blockBlastHintShown", "true");
+          }
+        }
+
+        // Tipp megjelenítése
+        function showHint(message) {
+          clearTimeout(hintTimeout);
+
+          hintMessage.textContent = message;
+          hintOverlay.classList.add("show");
+
+          hintTimeout = setTimeout(() => {
+            hintOverlay.classList.remove("show");
+          }, 3000);
+        }
+
+        // Blokk elem létrehozása
+        function createPieceElement(blocks, color) {
+          const piece = document.createElement("div");
+          piece.className = "piece";
+
+          // Méret meghatározása
+          let maxRow = 0,
+            maxCol = 0;
+          blocks.forEach((block) => {
+            maxRow = Math.max(maxRow, block[0]);
+            maxCol = Math.max(maxCol, block[1]);
+          });
+
+          // Grid beállítása
+          piece.style.gridTemplateRows = `repeat(${maxRow + 1}, 1fr)`;
+          piece.style.gridTemplateColumns = `repeat(${maxCol + 1}, 1fr)`;
+
+          // Blokkok hozzáadása
+          for (let row = 0; row <= maxRow; row++) {
+            for (let col = 0; col <= maxCol; col++) {
+              const block = document.createElement("div");
+
+              // Ellenőrizzük, hogy ez a pozíció része-e a blokknak
+              const isPartOfPiece = blocks.some(
+                (pos) => pos[0] === row && pos[1] === col
+              );
+
+              if (isPartOfPiece) {
+                block.className = "piece-block";
+                block.style.backgroundColor = color;
+              } else {
+                block.style.visibility = "hidden";
+              }
+
+              block.style.gridRow = row + 1;
+              block.style.gridColumn = col + 1;
+              piece.appendChild(block);
+            }
+          }
+
+          return piece;
+        }
+
+        // Blokk forgatása
+        function rotatePiece(e) {
+          e.preventDefault();
+
+          const pieceIndex = parseInt(this.dataset.index);
+          if (currentPieces[pieceIndex].used) return;
+
+          const piece = currentPieces[pieceIndex];
+
+          // Új blokk pozíciók kiszámítása forgatás után
+          const rotatedBlocks = [];
+
+          // Legnagyobb sor és oszlop megtalálása
+          let maxRow = 0,
+            maxCol = 0;
+          for (const block of piece.blocks) {
+            maxRow = Math.max(maxRow, block[0]);
+            maxCol = Math.max(maxCol, block[1]);
+          }
+
+          // 90 fokos forgatás
+          for (const block of piece.blocks) {
+            // Új [row, col] = régi [col, maxRow - row]
+            rotatedBlocks.push([block[1], maxRow - block[0]]);
+          }
+
+          // Megjelenés frissítése
+          piece.blocks = rotatedBlocks;
+
+          // Új elem létrehozása a forgatott blokkból
+          const newElement = createPieceElement(rotatedBlocks, piece.color);
+          newElement.dataset.index = pieceIndex;
+
+          // Régi elem helyébe az új
+          this.parentNode.replaceChild(newElement, this);
+          piece.element = newElement;
+
+          // Események hozzáadása az új elemhez
+          newElement.addEventListener("mousedown", startDrag);
+          newElement.addEventListener("touchstart", startDrag, {
+            passive: false,
+          });
+          newElement.addEventListener("dblclick", rotatePiece);
+
+          let lastTap = 0;
+          newElement.addEventListener("touchend", function (e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+              rotatePiece.call(this, e);
+              e.preventDefault();
+            }
+            lastTap = currentTime;
+          });
+
+          // Animáció a forgatáskor
+          newElement.style.transform = "rotate(360deg)";
+          setTimeout(() => {
+            newElement.style.transform = "";
+          }, 300);
+
+          // Mentés a forgatás után
+          saveGame();
+        }
+
+        // Húzás kezdése
+        function startDrag(e) {
+          if (!gameActive) return;
+          e.preventDefault();
+
+          const pieceIndex = parseInt(this.dataset.index);
+          if (currentPieces[pieceIndex].used) return;
+
+          draggedPiece = currentPieces[pieceIndex];
+          this.classList.add("dragging");
+
+          // Egér/érintés pozíció kiszámítása
+          const clientX = e.clientX || e.touches[0].clientX;
+          const clientY = e.clientY || e.touches[0].clientY;
+          const rect = this.getBoundingClientRect();
+
+          dragOffset.x = clientX - rect.left;
+          dragOffset.y = clientY - rect.top;
+
+          // Húzás események hozzáadása
+          document.addEventListener("mousemove", drag);
+          document.addEventListener("touchmove", drag, { passive: false });
+          document.addEventListener("mouseup", endDrag);
+          document.addEventListener("touchend", endDrag);
+        }
+
+        // Húzás folyamata
+        function drag(e) {
+          e.preventDefault();
+
+          if (!draggedPiece) return;
+
+          const clientX = e.clientX || e.touches[0].clientX;
+          const clientY = e.clientY || e.touches[0].clientY;
+
+          const element = draggedPiece.element;
+          element.style.position = "fixed";
+          element.style.left = clientX - dragOffset.x + "px";
+          element.style.top = clientY - dragOffset.y + "px";
+
+          // Kiemeljük a lehetséges helyeket a táblán
+          highlightValidPlacements(clientX, clientY);
+        }
+
+        // Érvényes elhelyezések kiemelése
+        function highlightValidPlacements(clientX, clientY) {
+          // Távolítsuk el az előző kiemeléseket
+          clearHighlights();
+
+          // Keressük meg a legközelebbi cellát
+          const element = document.elementFromPoint(clientX, clientY);
+          if (!element || !element.classList.contains("cell")) return;
+
+          const row = parseInt(element.dataset.row);
+          const col = parseInt(element.dataset.col);
+
+          // Ellenőrizzük, hogy elhelyezhető-e ide a blokk
+          const canPlace = checkPlacement(row, col, draggedPiece.blocks);
+
+          // Kiemeljük a lehetséges helyeket
+          draggedPiece.blocks.forEach((block) => {
+            const targetRow = row + block[0];
+            const targetCol = col + block[1];
+
+            if (
+              targetRow < BOARD_SIZE &&
+              targetCol < BOARD_SIZE &&
+              targetRow >= 0 &&
+              targetCol >= 0
+            ) {
+              const targetCell = board[targetRow][targetCol].element;
+              if (canPlace) {
+                targetCell.classList.add("valid-placement");
+              } else {
+                targetCell.classList.add("invalid-placement");
+              }
+            }
+          });
+        }
+
+        // Kiemelések törlése
+        function clearHighlights() {
+          document.querySelectorAll(".cell").forEach((cell) => {
+            cell.classList.remove(
+              "valid-placement",
+              "invalid-placement",
+              "highlight"
+            );
+          });
+        }
+
+        // Húzás vége
+        function endDrag(e) {
+          if (!draggedPiece) return;
+
+          document.removeEventListener("mousemove", drag);
+          document.removeEventListener("touchmove", drag);
+          document.removeEventListener("mouseup", endDrag);
+          document.removeEventListener("touchend", endDrag);
+
+          // Meghatározzuk, hová került a blokk
+          const clientX = e.clientX || e.changedTouches[0].clientX;
+          const clientY = e.clientY || e.changedTouches[0].clientY;
+          const element = document.elementFromPoint(clientX, clientY);
+
+          draggedPiece.element.classList.remove("dragging");
+          draggedPiece.element.style.position = "";
+          clearHighlights();
+
+          // Ha érvényes cellára került, elhelyezzük
+          if (element && element.classList.contains("cell")) {
+            const row = parseInt(element.dataset.row);
+            const col = parseInt(element.dataset.col);
+
+            if (placePiece(row, col, draggedPiece)) {
+              // Ha minden darab felhasználva lett, újakat generálunk
+              if (currentPieces.every((piece) => piece.used)) {
+                setTimeout(() => {
+                  generateNewPieces();
+                }, 600);
+              } else {
+                // Mentés a darab lehelyezése után
+                saveGame();
+              }
+            }
+          }
+
+          draggedPiece = null;
+        }
+
+        // Blokk elhelyezése
+        function placePiece(startRow, startCol, piece) {
+          if (!checkPlacement(startRow, startCol, piece.blocks)) {
+            return false;
+          }
+
+          // Blokk elhelyezése
+          const blockCells = [];
+          piece.blocks.forEach((block) => {
+            const row = startRow + block[0];
+            const col = startCol + block[1];
+
+            if (row < BOARD_SIZE && col < BOARD_SIZE) {
+              board[row][col].filled = true;
+              board[row][col].color = piece.color;
+              board[row][col].element.style.backgroundColor = piece.color;
+              board[row][col].element.classList.add("filled");
+              blockCells.push({ row, col });
+            }
+          });
+
+          // Késleltetett animáció a megjelenő blokkokra
+          blockCells.forEach((cell, index) => {
+            setTimeout(() => {
+              board[cell.row][cell.col].element.classList.remove("filled");
+              void board[cell.row][cell.col].element.offsetWidth; // Reflow erőltetése
+              board[cell.row][cell.col].element.classList.add("filled");
+            }, index * 50);
+          });
+
+          piece.used = true;
+          piece.element.classList.add("used");
+
+          // Sorok és oszlopok ellenőrzése
+          setTimeout(() => {
+            checkLinesAndColumns();
+
+            // Ellenőrizzük, hogy lehet-e még játszani
+            checkGameOver();
+
+            if (isGameOver) {
+              setTimeout(() => {
+                showGameOver();
+              }, 800);
+            }
+          }, piece.blocks.length * 50 + 100);
+
+          return true;
+        }
+
+        // Elhelyezés ellenőrzése
+        function checkPlacement(startRow, startCol, blocks) {
+          return blocks.every((block) => {
+            const row = startRow + block[0];
+            const col = startCol + block[1];
+
+            return (
+              row >= 0 &&
+              row < BOARD_SIZE &&
+              col >= 0 &&
+              col < BOARD_SIZE &&
+              !board[row][col].filled
+            );
+          });
+        }
+
+        // Sorok és oszlopok ellenőrzése
+        function checkLinesAndColumns() {
+          let completedLines = [];
+          let completedColumns = [];
+
+          // Sorok ellenőrzése
+          for (let row = 0; row < BOARD_SIZE; row++) {
+            if (board[row].every((cell) => cell.filled)) {
+              completedLines.push(row);
+            }
+          }
+
+          // Oszlopok ellenőrzése
+          for (let col = 0; col < BOARD_SIZE; col++) {
+            if (board.every((row) => row[col].filled)) {
+              completedColumns.push(col);
+            }
+          }
+
+          // Pontok számítása és sorok/oszlopok törlése
+          if (completedLines.length > 0 || completedColumns.length > 0) {
+            // Combo rendszer
+            const currentTime = Date.now();
+            const timeDiff = currentTime - lastClearTime;
+
+            if (timeDiff < 3000) {
+              comboCount++;
+            } else {
+              comboCount = 0;
+            }
+
+            lastClearTime = currentTime;
+
+            // Combo kijelzése
+            if (comboCount > 0) {
+              const comboMultiplier = Math.min(5, comboCount + 1);
+              comboIndicator.textContent = `Combo x${comboMultiplier}!`;
+              comboIndicator.classList.remove("show");
+              void comboIndicator.offsetWidth; // Reflow kényszerítése az animáció újraindításához
+              comboIndicator.classList.add("show");
+            }
+
+            // Animáció a törléshez
+            completedLines.forEach((row) => {
+              for (let col = 0; col < BOARD_SIZE; col++) {
+                board[row][col].element.classList.add("row-clear");
+              }
+            });
+
+            completedColumns.forEach((col) => {
+              for (let row = 0; row < BOARD_SIZE; row++) {
+                board[row][col].element.classList.add("row-clear");
+              }
+            });
+
+            // Pontok számítása
+            const totalCleared =
+              completedLines.length + completedColumns.length;
+            const comboMultiplier = Math.min(5, comboCount + 1);
+            const basePoints =
+              totalCleared * 10 * (totalCleared > 1 ? totalCleared : 1);
+            const points = basePoints * comboMultiplier;
+
+            // Popup animáció a pontokhoz
+            const boardRect = gameBoard.getBoundingClientRect();
+            const popupPoints = document.createElement("div");
+            popupPoints.className = "popup-points";
+            popupPoints.textContent = `+${points}`;
+            popupPoints.style.left = `${boardRect.width / 2}px`;
+            popupPoints.style.top = `${boardRect.height / 2}px`;
+            gameBoard.appendChild(popupPoints);
+
+            setTimeout(() => {
+              popupPoints.remove();
+            }, 1500);
+
+            // Pontok hozzáadása
+            score += points;
+            levelScore += points;
+            scoreElement.textContent = score;
+
+            // Szint haladás frissítése
+            updateLevelProgress();
+
+            // Rekord frissítése
+            if (score > highScore) {
+              highScore = score;
+              highScoreElement.textContent = highScore;
+              localStorage.setItem("blockBlastHighScore", highScore);
+            }
+
+            // Sok pont vagy teljes pálya törlés esetén konfetti
+            if (points > 50 || totalCleared > 3) {
+              createConfetti(totalCleared * 20);
+            }
+
+            // Késleltetés a törlés előtt (az animáció miatt)
+            setTimeout(() => {
+              // Sorok törlése
+              completedLines.forEach((row) => {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                  board[row][col].filled = false;
+                  board[row][col].color = null;
+                  board[row][col].element.style.backgroundColor = "";
+                  board[row][col].element.classList.remove(
+                    "filled",
+                    "row-clear"
+                  );
+                }
+              });
+
+              // Oszlopok törlése
+              completedColumns.forEach((col) => {
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                  board[row][col].filled = false;
+                  board[row][col].color = null;
+                  board[row][col].element.style.backgroundColor = "";
+                  board[row][col].element.classList.remove(
+                    "filled",
+                    "row-clear"
+                  );
+                }
+              });
+
+              // Játékállás mentése
+              saveGame();
+            }, 700);
+          }
+        }
+
+        // Szint haladás frissítése
+        function updateLevelProgress() {
+          const progress = Math.min(100, (levelScore / levelGoalScore) * 100);
+          progressFill.style.width = `${progress}%`;
+          levelGoal.textContent = `${levelScore}/${levelGoalScore}`;
+
+          // Szintlépés ellenőrzése
+          if (levelScore >= levelGoalScore) {
+            levelUp.style.display = "block";
+            level++;
+            levelElement.textContent = level;
+            levelScore = 0;
+            levelGoalScore = Math.floor(levelGoalScore * 1.5);
+
+            // Szintlépés animáció
+            setTimeout(() => {
+              levelUp.style.display = "none";
+              updateLevelProgress();
+            }, 3000);
+
+            // Szintlépés konfetti
+            createConfetti(50);
+
+            // Játékállás mentése a szintlépés után
+            saveGame();
+          }
+        }
+
+        // Konfetti effekt
+        function createConfetti(amount) {
+          const container = document.querySelector(".container");
+          const colors = [
+            "#FF5757",
+            "#F2DE68",
+            "#5CDAA5",
+            "#5CAADE",
+            "#B479E0",
+            "#FF9D5C",
+          ];
+
+          for (let i = 0; i < amount; i++) {
+            const confetti = document.createElement("div");
+            confetti.className = "confetti";
+
+            const size = Math.random() * 10 + 5;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            confetti.style.width = `${size}px`;
+            confetti.style.height = `${size}px`;
+            confetti.style.backgroundColor = color;
+            confetti.style.left = `${Math.random() * 100}%`;
+            confetti.style.top = `${Math.random() * 50}%`;
+            confetti.style.opacity = "1";
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+            container.appendChild(confetti);
+
+            // Animáció
+            const animation = confetti.animate(
+              [
+                {
+                  transform: `translate(0, 0) rotate(${
+                    Math.random() * 360
+                  }deg)`,
+                  opacity: 1,
+                },
+                {
+                  transform: `translate(${Math.random() * 200 - 100}px, ${
+                    Math.random() * 200 + 150
+                  }px) rotate(${Math.random() * 360}deg)`,
+                  opacity: 0,
+                },
+              ],
+              {
+                duration: Math.random() * 2000 + 1000,
+                easing: "cubic-bezier(0.1, 0.8, 0.3, 1)",
+              }
+            );
+
+            animation.onfinish = () => {
+              confetti.remove();
+            };
+          }
+        }
+
+        // Játék vége ellenőrzés
+        function checkGameOver() {
+          if (currentPieces.every((piece) => piece.used)) {
+            return;
+          }
+
+          // Ellenőrizzük, hogy a nem használt blokkok elhelyezhetők-e még
+          let canPlaceAny = false;
+
+          for (let piece of currentPieces) {
+            if (piece.used) continue;
+
+            // Ellenőrizzük minden lehetséges pozícióban
+            for (let row = 0; row < BOARD_SIZE; row++) {
+              for (let col = 0; col < BOARD_SIZE; col++) {
+                if (checkPlacement(row, col, piece.blocks)) {
+                  canPlaceAny = true;
+                  break;
+                }
+              }
+              if (canPlaceAny) break;
+            }
+            if (canPlaceAny) break;
+          }
+
+          isGameOver = !canPlaceAny;
+        }
+
+        // Játék vége megjelenítése
+        function showGameOver() {
+          gameActive = false;
+          finalScoreElement.textContent = score;
+          finalLevelElement.textContent = level;
+          gameOverModal.style.display = "flex";
+
+          // Játék vége esetén töröljük a mentést
+          clearSavedGame();
+        }
+
+        // Játék újraindítása
+        function restartGame() {
+          // Csak akkor indíthatunk új játékot, ha befejeztük az előzőt vagy a játékos megerősítette
+          score = 0;
+          level = 1;
+          levelScore = 0;
+          levelGoalScore = 100;
+          comboCount = 0;
+          lastClearTime = 0;
+          scoreElement.textContent = "0";
+          levelElement.textContent = "1";
+          isGameOver = false;
+          gameActive = true;
+
+          // Modalok elrejtése
+          gameOverModal.style.display = "none";
+          menuModal.style.display = "none";
+          confirmModal.style.display = "none";
+
+          // Tábla és pontok inicializálása
+          updateLevelProgress();
+          initBoard();
+          generateNewPieces();
+
+          // Mentések törlése
+          clearSavedGame();
+        }
+
+        // Játék mentése
+        function saveGame() {
+          if (!gameStarted || isGameOver) return;
+
+          // Tábla állapot mentése
+          const boardState = [];
+          for (let row = 0; row < BOARD_SIZE; row++) {
+            boardState[row] = [];
+            for (let col = 0; col < BOARD_SIZE; col++) {
+              boardState[row][col] = {
+                filled: board[row][col].filled,
+                color: board[row][col].color,
+              };
+            }
+          }
+
+          // Aktív blokkok mentése
+          const piecesState = currentPieces.map((piece) => {
+            return {
+              blocks: piece.blocks,
+              color: piece.color,
+              used: piece.used,
+            };
+          });
+
+          // Játék állapot mentése
+          const gameState = {
+            board: boardState,
+            pieces: piecesState,
+            score: score,
+            level: level,
+            levelScore: levelScore,
+            levelGoalScore: levelGoalScore,
+            timestamp: Date.now(),
+          };
+
+          // Mentés localStorage-ba
+          localStorage.setItem(
+            "blockBlastGameState",
+            JSON.stringify(gameState)
+          );
+        }
+
+        // Játék betöltése
+        function loadGame() {
+          const savedState = localStorage.getItem("blockBlastGameState");
+          if (!savedState) {
+            initBoard();
+            generateNewPieces();
+            updateLevelProgress();
+            return;
+          }
+
+          try {
+            const gameState = JSON.parse(savedState);
+
+            // Ha túl régi a mentés (több mint 3 nap), vagy nincs érvényes állapota, akkor új játékot kezdünk
+            if (
+              Date.now() - gameState.timestamp > 3 * 24 * 60 * 60 * 1000 ||
+              !gameState.board ||
+              !gameState.pieces
+            ) {
+              clearSavedGame();
+              initBoard();
+              generateNewPieces();
+              updateLevelProgress();
+              return;
+            }
+
+            // Betöltjük a játék változókat
+            score = gameState.score;
+            level = gameState.level;
+            levelScore = gameState.levelScore;
+            levelGoalScore = gameState.levelGoalScore;
+
+            // UI frissítése
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+
+            // Tábla inicializálása
+            initBoard();
+
+            // Tábla állapot betöltése
+            for (let row = 0; row < BOARD_SIZE; row++) {
+              for (let col = 0; col < BOARD_SIZE; col++) {
+                if (gameState.board[row][col].filled) {
+                  board[row][col].filled = true;
+                  board[row][col].color = gameState.board[row][col].color;
+                  board[row][col].element.style.backgroundColor =
+                    gameState.board[row][col].color;
+                  board[row][col].element.classList.add("filled");
+                }
+              }
+            }
+
+            // Darabok betöltése
+            piecesContainer.innerHTML = "";
+            currentPieces = [];
+
+            gameState.pieces.forEach((piece, index) => {
+              const pieceHolder = document.createElement("div");
+              pieceHolder.className = "piece-holder";
+
+              // Rotáció hint hozzáadása
+              const rotateHint = document.createElement("div");
+              rotateHint.className = "rotate-hint";
+              rotateHint.innerHTML = "⟳";
+              pieceHolder.appendChild(rotateHint);
+
+              // Blokk elem létrehozása
+              const pieceElement = createPieceElement(
+                piece.blocks,
+                piece.color
+              );
+              pieceElement.dataset.index = index;
+
+              if (piece.used) {
+                pieceElement.classList.add("used");
+              } else {
+                // Drag & Drop funkció csak a nem használt darabokhoz
+                pieceElement.addEventListener("mousedown", startDrag);
+                pieceElement.addEventListener("touchstart", startDrag, {
+                  passive: false,
+                });
+
+                // Forgatás hozzáadása
+                pieceElement.addEventListener("dblclick", rotatePiece);
+                let lastTap = 0;
+                pieceElement.addEventListener("touchend", function (e) {
+                  const currentTime = new Date().getTime();
+                  const tapLength = currentTime - lastTap;
+                  if (tapLength < 300 && tapLength > 0) {
+                    rotatePiece.call(this, e);
+                    e.preventDefault();
+                  }
+                  lastTap = currentTime;
+                });
+              }
+
+              pieceHolder.appendChild(pieceElement);
+              piecesContainer.appendChild(pieceHolder);
+
+              // Darab adatainak tárolása
+              currentPieces.push({
+                element: pieceElement,
+                blocks: piece.blocks,
+                color: piece.color,
+                used: piece.used,
+              });
+            });
+
+            // Játék aktív
+            gameStarted = true;
+            gameActive = true;
+
+            // Szint haladás frissítése
+            updateLevelProgress();
+
+            // Ellenőrizzük a játék végét
+            checkGameOver();
+            if (isGameOver) {
+              showGameOver();
+            }
+          } catch (error) {
+            console.error("Hiba a játék betöltésekor:", error);
+            // Hiba esetén új játékot kezdünk
+            clearSavedGame();
+            initBoard();
+            generateNewPieces();
+            updateLevelProgress();
+          }
+        }
+
+        // Mentett játék törlése
+        function clearSavedGame() {
+          localStorage.removeItem("blockBlastGameState");
+        }
+
+        // Lehetséges lépések kijelzése a játék végéhez közeledve
+        function showPossibleMoves() {
+          // Minden blokkhoz megmutatja, hol helyezhető el
+          for (let piece of currentPieces) {
+            if (piece.used) continue;
+
+            for (let row = 0; row < BOARD_SIZE; row++) {
+              for (let col = 0; col < BOARD_SIZE; col++) {
+                if (checkPlacement(row, col, piece.blocks)) {
+                  // Kiemelni egy helyet, ahol elhelyezhető a blokk
+                  piece.blocks.forEach((block) => {
+                    const targetRow = row + block[0];
+                    const targetCol = col + block[1];
+
+                    if (targetRow < BOARD_SIZE && targetCol < BOARD_SIZE) {
+                      board[targetRow][targetCol].element.classList.add(
+                        "highlight"
+                      );
+                    }
+                  });
+
+                  // Csak az első érvényes helyet mutatjuk meg
+                  return true;
+                }
+              }
+            }
+          }
+
+          return false;
+        }
+
+        // Események kezelése
+        menuBtn.addEventListener("click", () => {
+          menuModal.style.display = "flex";
+        });
+
+        resumeBtn.addEventListener("click", () => {
+          menuModal.style.display = "none";
+        });
+
+        newGameBtn.addEventListener("click", () => {
+          if (gameStarted && gameActive) {
+            // Ha már van játék folyamatban, megerősítést kérünk
+            menuModal.style.display = "none";
+            confirmModal.style.display = "flex";
+          } else {
+            // Ha nincs játék folyamatban, rögtön indíthatunk újat
+            restartGame();
+          }
+        });
+
+        newGameBtnEnd.addEventListener("click", restartGame);
+        confirmNewGameBtn.addEventListener("click", restartGame);
+
+        cancelNewGameBtn.addEventListener("click", () => {
+          confirmModal.style.display = "none";
+          menuModal.style.display = "flex";
+        });
+
+        helpBtn.addEventListener("click", () => {
+          menuModal.style.display = "none";
+          helpModal.style.display = "flex";
+        });
+
+        closeHelpBtn.addEventListener("click", () => {
+          helpModal.style.display = "none";
+          menuModal.style.display = "flex";
+        });
+
+        // Modal ablakok bezárása kattintással a háttérre
+        document.addEventListener("click", (e) => {
+          if (e.target === gameOverModal) {
+            // Játék vége ablakot csak a gombbal lehet bezárni
+          }
+          if (e.target === helpModal) {
+            helpModal.style.display = "none";
+          }
+          if (e.target === menuModal) {
+            menuModal.style.display = "none";
+          }
+          if (e.target === confirmModal) {
+            confirmModal.style.display = "none";
+          }
+        });
+
+        // Tipp betöltése, ha már látta korábban
+        if (localStorage.getItem("blockBlastHintShown")) {
+          showedHint = true;
+        }
+
+        // Pontszám betöltése
+        highScoreElement.textContent = highScore;
+
+        // Játék automatikus mentése 30 másodpercenként
+        setInterval(() => {
+          if (gameStarted && gameActive && !isGameOver) {
+            saveGame();
+          }
+        }, 30000);
+
+        // Ablak bezárásakor mentés
+        window.addEventListener("beforeunload", () => {
+          if (gameStarted && gameActive && !isGameOver) {
+            saveGame();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
